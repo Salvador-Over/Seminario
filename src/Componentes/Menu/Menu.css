@@ -229,3 +229,37 @@ body {
   background: #fc4300;         /* segundero rojo */
   height: 2px;
 }
+
+/* Estilos para mensaje de sin permisos */
+.sin-permisos {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 40px;
+  text-align: center;
+  background-color: #f8f9fa;
+  border-radius: 12px;
+  margin: 40px auto;
+  max-width: 600px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+
+.sin-permisos h2 {
+  color: #555;
+  margin: 20px 0 10px 0;
+  font-size: 1.8rem;
+}
+
+.sin-permisos p {
+  color: #777;
+  margin: 8px 0;
+  font-size: 1.1rem;
+  line-height: 1.6;
+}
+
+.sin-permisos p:last-child {
+  color: #999;
+  font-size: 1rem;
+  margin-top: 15px;
+}

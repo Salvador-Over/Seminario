@@ -1,8 +1,9 @@
 const express = require('express');
-const cors = require('cors');
 const mysql = require('mysql2');
+const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
-const bcrypt = require('bcryptjs'); // 🔹 Para cifrar contraseñas
+const cors = require('cors');
+const { enriquecerModulos } = require('./config_modulos');
 
 const SECRET_KEY = "tu_clave_secreta"; // puedes dejarla aquí fijo si no usas .env
 
@@ -24,24 +25,31 @@ const connection = mysql.createConnection({
 
 connection.connect((err) => {
   if (err) {
-    console.error("❌ Error de conexión a Azure:", err);
+    console.error(" Error de conexión a Azure:", err);
     return;
   }
-  console.log("✅ Conexión exitosa a Azure MySQL");
+  console.log(" Conexión exitosa a Azure MySQL");
 });
 
 // Ruta para el login
 app.post('/api/login', (req, res) => {
+  console.log(" req.body completo:", req.body);
+  console.log(" Tipo de req.body:", typeof req.body);
+  console.log(" Keys de req.body:", Object.keys(req.body));
+  
   const { usuario, contrasena } = req.body;
 
-  console.log("🔍 Intento de login:", { usuario, contrasena: "***" });
+  console.log(" Intento de login:", { usuario, contrasena: "***" });
+  console.log(" Usuario es:", usuario, "| Tipo:", typeof usuario);
+  console.log(" Contrasena es:", contrasena ? "***" : "undefined/null", "| Tipo:", typeof contrasena);
 
   if (!usuario || !contrasena) {
+    console.log(" VALIDACIÓN FALLÓ - Faltan datos");
     return res.status(400).json({ mensaje: 'Faltan datos' });
   }
 
   const query = `
-    SELECT * FROM usuarios
+    SELECT id, usuario, contrasena, rol FROM usuarios
     WHERE BINARY usuario = ?
     LIMIT 1
   `;
@@ -74,19 +82,174 @@ app.post('/api/login', (req, res) => {
         { expiresIn: "1h" }
       );
 
-      console.log("✅ Login exitoso para:", usuario);
-      res.json({ 
-        mensaje: "Inicio de sesión exitoso",
-        exito: true,
-        usuario: user,
-        token
-      });
+      // Obtener módulos del usuario
+      if (user.rol === 'admin') {
+        // Si es admin, obtener todos los módulos
+        const modulosQuery = "SELECT id_modulo, nombre_modulo FROM modulos";
+        
+        connection.query(modulosQuery, (err, modulos) => {
+          if (err) {
+            console.error("❌ Error al obtener módulos:", err);
+            return res.status(500).json({ mensaje: 'Error al obtener módulos' });
+          }
+          
+          // Enriquecer módulos con configuración
+          const modulosEnriquecidos = enriquecerModulos(modulos);
+          
+          console.log("✅ Login exitoso para admin:", usuario);
+          res.json({ 
+            mensaje: "Inicio de sesión exitoso",
+            exito: true,
+            usuario: {
+              id: user.id,
+              usuario: user.usuario,
+              rol: user.rol,
+              modulos: modulosEnriquecidos
+            },
+            token
+          });
+        });
+      } else {
+        // Si es usuario, obtener solo sus módulos permitidos
+        const modulosQuery = `
+          SELECT m.id_modulo, m.nombre_modulo
+          FROM modulos m
+          INNER JOIN permisos_usuario p ON m.id_modulo = p.id_modulo
+          WHERE p.id_usuario = ?
+        `;
+        
+        connection.query(modulosQuery, [user.id], (err, modulos) => {
+          if (err) {
+            console.error("❌ Error al obtener módulos:", err);
+            return res.status(500).json({ mensaje: 'Error al obtener módulos' });
+          }
+          
+          // Enriquecer módulos con configuración
+          const modulosEnriquecidos = enriquecerModulos(modulos);
+          
+          console.log("✅ Login exitoso para:", usuario);
+          res.json({ 
+            mensaje: "Inicio de sesión exitoso",
+            exito: true,
+            usuario: {
+              id: user.id,
+              usuario: user.usuario,
+              rol: user.rol,
+              modulos: modulosEnriquecidos
+            },
+            token
+          });
+        });
+      }
     } else {
       console.log("❌ Usuario no encontrado:", usuario);
       res.status(401).json({ mensaje: "Credenciales incorrectas", exito: false });
     }
   });
   
+});
+
+// ================================
+// RUTAS PARA MÓDULOS Y PERMISOS
+// ================================
+
+// Obtener todos los módulos
+app.get('/api/modulos', (req, res) => {
+  const query = "SELECT id_modulo, nombre_modulo FROM modulos";
+  
+  connection.query(query, (err, results) => {
+    if (err) {
+      console.error("❌ Error al obtener módulos:", err);
+      return res.status(500).json({ mensaje: "Error al obtener módulos" });
+    }
+    
+    // Enriquecer módulos con configuración (ruta, icono, color, orden)
+    const modulosEnriquecidos = enriquecerModulos(results);
+    res.json(modulosEnriquecidos);
+  });
+});
+
+// Obtener módulos de un usuario específico
+app.get('/api/usuarios/:id/modulos', (req, res) => {
+  const { id } = req.params;
+  
+  const query = `
+    SELECT m.id_modulo, m.nombre_modulo
+    FROM modulos m
+    INNER JOIN permisos_usuario p ON m.id_modulo = p.id_modulo
+    WHERE p.id_usuario = ?
+  `;
+  
+  connection.query(query, [id], (err, results) => {
+    if (err) {
+      console.error("❌ Error al obtener módulos del usuario:", err);
+      return res.status(500).json({ mensaje: "Error al obtener módulos" });
+    }
+    
+    // Enriquecer módulos con configuración
+    const modulosEnriquecidos = enriquecerModulos(results);
+    res.json(modulosEnriquecidos);
+  });
+});
+
+// Asignar permisos a un usuario
+app.post('/api/usuarios/:id/permisos', (req, res) => {
+  const { id } = req.params;
+  const { modulos } = req.body; // Array de id_modulo
+  
+  if (!modulos || !Array.isArray(modulos)) {
+    return res.status(400).json({ mensaje: "Formato de módulos inválido" });
+  }
+  
+  // Primero eliminar permisos existentes
+  const deleteQuery = "DELETE FROM permisos_usuario WHERE id_usuario = ?";
+  
+  connection.query(deleteQuery, [id], (err) => {
+    if (err) {
+      console.error("❌ Error al eliminar permisos:", err);
+      return res.status(500).json({ mensaje: "Error al actualizar permisos" });
+    }
+    
+    if (modulos.length === 0) {
+      return res.json({ mensaje: "✅ Permisos actualizados correctamente" });
+    }
+    
+    // Insertar nuevos permisos
+    const insertQuery = "INSERT INTO permisos_usuario (id_usuario, id_modulo) VALUES ?";
+    const values = modulos.map(id_modulo => [id, id_modulo]);
+    
+    connection.query(insertQuery, [values], (err) => {
+      if (err) {
+        console.error("❌ Error al insertar permisos:", err);
+        return res.status(500).json({ mensaje: "Error al asignar permisos" });
+      }
+      res.json({ mensaje: "✅ Permisos actualizados correctamente" });
+    });
+  });
+});
+
+// Obtener permisos de un usuario (para edición)
+app.get('/api/usuarios/:id/permisos', (req, res) => {
+  const { id } = req.params;
+  
+  const query = `
+    SELECT m.id_modulo, m.nombre_modulo,
+           CASE WHEN p.id_permiso IS NOT NULL THEN TRUE ELSE FALSE END as tiene_acceso
+    FROM modulos m
+    LEFT JOIN permisos_usuario p ON m.id_modulo = p.id_modulo AND p.id_usuario = ?
+    ORDER BY m.id_modulo
+  `;
+  
+  connection.query(query, [id], (err, results) => {
+    if (err) {
+      console.error("❌ Error al obtener permisos:", err);
+      return res.status(500).json({ mensaje: "Error al obtener permisos" });
+    }
+    
+    // Enriquecer con configuración y ordenar
+    const resultadosEnriquecidos = enriquecerModulos(results);
+    res.json(resultadosEnriquecidos);
+  });
 });
 
 // Iniciar servidor
@@ -499,6 +662,56 @@ app.get('/api/usuarios', (req, res) => {
       return res.status(500).json({ mensaje: "Error al obtener usuarios" });
     }
     res.json(results);
+  });
+});
+
+// Actualizar usuario
+app.put('/api/usuarios/:id', (req, res) => {
+  const { id } = req.params;
+  const { usuario, contrasena, rol } = req.body;
+
+  if (!usuario || !rol) {
+    return res.status(400).json({ mensaje: "Faltan datos obligatorios" });
+  }
+
+  // Si se proporciona una nueva contraseña, cifrarla
+  let query, params;
+  if (contrasena && contrasena.trim() !== "") {
+    const hashedPassword = bcrypt.hashSync(contrasena, 10);
+    query = "UPDATE usuarios SET usuario = ?, contrasena = ?, rol = ? WHERE id = ?";
+    params = [usuario, hashedPassword, rol, id];
+  } else {
+    // Si no se proporciona contraseña, solo actualizar usuario y rol
+    query = "UPDATE usuarios SET usuario = ?, rol = ? WHERE id = ?";
+    params = [usuario, rol, id];
+  }
+
+  connection.query(query, params, (err, results) => {
+    if (err) {
+      console.error("❌ Error al actualizar usuario:", err);
+      return res.status(500).json({ mensaje: "Error al actualizar usuario" });
+    }
+    if (results.affectedRows === 0) {
+      return res.status(404).json({ mensaje: "Usuario no encontrado" });
+    }
+    res.json({ mensaje: "✅ Usuario actualizado correctamente" });
+  });
+});
+
+// Eliminar usuario
+app.delete('/api/usuarios/:id', (req, res) => {
+  const { id } = req.params;
+
+  const query = "DELETE FROM usuarios WHERE id = ?";
+  connection.query(query, [id], (err, results) => {
+    if (err) {
+      console.error("❌ Error al eliminar usuario:", err);
+      return res.status(500).json({ mensaje: "Error al eliminar usuario" });
+    }
+    if (results.affectedRows === 0) {
+      return res.status(404).json({ mensaje: "Usuario no encontrado" });
+    }
+    res.json({ mensaje: "✅ Usuario eliminado correctamente" });
   });
 });
 

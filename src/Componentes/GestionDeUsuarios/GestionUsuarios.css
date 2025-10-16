@@ -79,6 +79,36 @@
   margin-top: 20px;
 }
 
+/* Estilos para el menú de columnas (tres puntos) */
+.table-container .MuiDataGrid-menuIcon {
+  color: #000 !important;
+}
+
+.table-container .MuiDataGrid-menuIconButton {
+  color: #000 !important;
+}
+
+.table-container .MuiIconButton-root {
+  color: #000 !important;
+}
+
+/* Estilos para el contenido del menú desplegable */
+.MuiDataGrid-menu .MuiMenuItem-root {
+  color: #000 !important;
+}
+
+.MuiDataGrid-menu .MuiListItemText-root {
+  color: #000 !important;
+}
+
+.MuiDataGrid-menu .MuiTypography-root {
+  color: #000 !important;
+}
+
+.MuiPaper-root .MuiMenuItem-root {
+  color: #000 !important;
+}
+
 .btn-regresar {
   display: inline-flex;
   align-items: center;
@@ -96,4 +126,164 @@
 
 .btn-regresar:hover {
   background-color: #115293;
+}
+
+/* Botón limpiar */
+.btn-limpiar {
+  background-color: #ff9800;
+  color: white;
+  padding: 12px 24px;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 1rem;
+  transition: background-color 0.3s ease;
+  font-weight: 600;
+}
+
+.btn-limpiar:hover {
+  background-color: #f57c00;
+}
+
+/* Botón cancelar */
+.btn-cancel {
+  background-color: #f44336;
+  color: white;
+  padding: 12px 24px;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 1rem;
+  transition: background-color 0.3s ease;
+}
+
+.btn-cancel:hover {
+  background-color: #d32f2f;
+}
+
+/* Botones de acción en la tabla */
+.btn-action {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 1.2rem;
+  padding: 6px 10px;
+  border-radius: 6px;
+  transition: all 0.3s ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.btn-edit {
+  color: #1976d2;
+}
+
+.btn-edit:hover {
+  background-color: #e3f2fd;
+  color: #115293;
+}
+
+.btn-delete {
+  color: #f44336;
+}
+
+.btn-delete:hover {
+  background-color: #ffebee;
+  color: #d32f2f;
+}
+
+/* Estilos para permisos */
+.permisos-container {
+  width: 100%;
+  margin-top: 20px;
+  padding: 25px;
+  background: linear-gradient(135deg, #e3f2fd 0%, #f8f9fa 100%);
+  border-radius: 12px;
+  border: 2px solid #1976d2;
+  box-shadow: 0 4px 12px rgba(25, 118, 210, 0.15);
+}
+
+.permisos-title {
+  margin: 0 0 10px 0;
+  color: #1976d2;
+  font-size: 1.2rem;
+  font-weight: 700;
+  text-align: center;
+}
+
+.permisos-descripcion {
+  text-align: center;
+  color: #666;
+  font-size: 0.9rem;
+  margin-bottom: 20px;
+  font-style: italic;
+}
+
+.permisos-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 15px;
+  margin-bottom: 15px;
+}
+
+.permiso-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 15px;
+  background-color: white;
+  border-radius: 8px;
+  border: 2px solid #e0e0e0;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+
+.permiso-item:hover {
+  background-color: #e3f2fd;
+  border-color: #1976d2;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(25, 118, 210, 0.2);
+}
+
+.permiso-item input[type="checkbox"] {
+  width: 20px;
+  height: 20px;
+  cursor: pointer;
+  accent-color: #1976d2;
+  margin-top: 2px;
+  flex-shrink: 0;
+}
+
+.permiso-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.permiso-nombre {
+  font-size: 1rem;
+  color: #333;
+  font-weight: 600;
+}
+
+.permiso-desc {
+  font-size: 0.85rem;
+  color: #666;
+  line-height: 1.4;
+}
+
+.permisos-nota {
+  background-color: #fff3cd;
+  border: 1px solid #ffc107;
+  border-radius: 6px;
+  padding: 12px;
+  color: #856404;
+  font-size: 0.9rem;
+  text-align: center;
+}
+
+.permisos-nota strong {
+  color: #856404;
 }

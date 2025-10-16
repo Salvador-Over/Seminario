@@ -19,9 +19,9 @@ const Menu = () => {
     }
   }, [navigate]);
 
-  //const rol = localStorage.getItem("rol") || "Usuario";
   const usuario = localStorage.getItem("usuario") || "Usuario";
   const [dateTime, setDateTime] = useState(new Date());
+  const [modulos, setModulos] = useState([]);
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -30,9 +30,20 @@ const Menu = () => {
     return () => clearInterval(interval);
   }, []);
 
+  // Cargar módulos desde localStorage
+  useEffect(() => {
+    const modulosGuardados = localStorage.getItem("modulos");
+    if (modulosGuardados) {
+      setModulos(JSON.parse(modulosGuardados));
+    }
+  }, []);
+
   const handleLogout = () => {
-    localStorage.removeItem("token"); // Esta instrucción borra el token al cerrar sesión
+    localStorage.removeItem("token");
     localStorage.removeItem("rol");
+    localStorage.removeItem("usuario");
+    localStorage.removeItem("id_usuario");
+    localStorage.removeItem("modulos");
     navigate("/");
   };
 
@@ -45,15 +56,16 @@ const Menu = () => {
     }
   };
 
-  const items = [
-    { icon: <FaUsers />, label: "Gestion De Usuarios Del Sistema", color: "#66d4ff", route: "/GestionUsuarios" },
-    { icon: <FaCar />, label: "Registro De Entradas y Salidas De Vehículos-", color: "#66d4ff", route: "/vehiculos" },
-    { icon: <FaCalculator />, label: "Cálculo Automático De Tarifas", color: "#66d4ff" },
-    { icon: <FaReceipt />, label: "Generación De Tickets", color: "#66d4ff", route: "/ticket" },
-    { icon: <FaFileInvoiceDollar />, label: "Cobros Y Facturación", color: "#66d4ff" },
-    { icon: <FaChartPie />, label: "Reportes Automáticos", color: "#66d4ff", route: "/reportes" },
-    { icon: <FaCog />, label: "Ajustes", color: "#66d4ff" },
-  ];
+  // Mapeo de íconos
+  const iconMap = {
+    'FaUsers': <FaUsers />,
+    'FaCar': <FaCar />,
+    'FaCalculator': <FaCalculator />,
+    'FaReceipt': <FaReceipt />,
+    'FaFileInvoiceDollar': <FaFileInvoiceDollar />,
+    'FaChartPie': <FaChartPie />,
+    'FaCog': <FaCog />
+  };
 
   return (
     <div>
@@ -82,19 +94,31 @@ const Menu = () => {
             <span>Salir</span>
           </button>
         </div>
-        <div className="menu-grid">
-  {items.map((item, index) => (
-    <div
-      key={index}
-      className="menu-card"
-      style={{ backgroundColor: item.color, cursor: item.route ? 'pointer' : 'default' }}
-      onClick={() => item.route && navigate(item.route)}
-    >
-      <div className="menu-icon">{item.icon}</div>
-      <p className="menu-label">{item.label}</p>
-    </div>
-  ))}
-</div>
+        {modulos.length > 0 ? (
+          <div className="menu-grid">
+            {modulos.map((modulo) => (
+              <div
+                key={modulo.id_modulo}
+                className="menu-card"
+                style={{ 
+                  backgroundColor: modulo.color || '#66d4ff', 
+                  cursor: modulo.ruta ? 'pointer' : 'default' 
+                }}
+                onClick={() => modulo.ruta && navigate(modulo.ruta)}
+              >
+                <div className="menu-icon">{iconMap[modulo.icono] || <FaCog />}</div>
+                <p className="menu-label">{modulo.nombre_modulo}</p>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="sin-permisos">
+            <FaCog size={60} color="#ccc" />
+            <h2>Sin Permisos de Acceso</h2>
+            <p>No tienes permisos asignados para acceder a ningún módulo del sistema.</p>
+            <p>Por favor, contacta al administrador para solicitar los accesos necesarios.</p>
+          </div>
+        )}
 
       </div>
     </div>

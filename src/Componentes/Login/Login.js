@@ -20,22 +20,24 @@ function Login() {
     }
 
     try {
-      const res = await fetch('https://seminario-backend-1.onrender.com/api/login', {
+      //const res = await fetch('http://seminario-backend-1.onrender.com/api/login'
+      // TEMPORAL: Usar servidor local para debugging
+      const res = await fetch('http://localhost:3001/api/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ usuario, contrasena, recordarme })
       });
 
       const data = await res.json();
-
-      console.log("Respuesta backend:", data);
       alert(data.mensaje);
 
       if (data.exito) {
         localStorage.setItem("token", data.token);
         localStorage.setItem("rol", data.usuario.rol);
         localStorage.setItem("usuario", data.usuario.usuario);
-        navigate("/menu", { state: { rol: data.usuario.rol } });
+        localStorage.setItem("id_usuario", data.usuario.id);
+        localStorage.setItem("modulos", JSON.stringify(data.usuario.modulos || []));
+        navigate("/menu");
       }
     } catch (err) {
       console.error("Error al enviar datos:", err);

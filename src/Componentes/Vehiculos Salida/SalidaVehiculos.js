@@ -6,14 +6,10 @@ import './SalidaVehiculos.css';
 // --- Función para obtener datos del ticket desde la API ---
 const obtenerDatosTicket = async (codigo) => {
   try {
-    console.log('🔍 Buscando ticket con código de barras:', codigo);
     const response = await fetch(`https://seminario-backend-1.onrender.com/api/ticket/${codigo}`);
     const data = await response.json();
     
-    console.log('📡 Respuesta de la API:', data);
-    
     if (response.ok && data.success) {
-      console.log('✅ Ticket encontrado:', data);
       return {
         success: true,
         ticketId: data.ticketId, // ID del vehículo para procesamiento
@@ -23,11 +19,10 @@ const obtenerDatosTicket = async (codigo) => {
         vehiculo: data.vehiculo
       };
     } else {
-      console.log('❌ Ticket no encontrado');
       return { success: false, error: data.mensaje || 'Ticket no encontrado' };
     }
   } catch (error) {
-    console.error('💥 Error al obtener datos del ticket:', error);
+    console.error('Error al obtener datos del ticket:', error);
     return { success: false, error: error.message };
   }
 };
@@ -120,11 +115,8 @@ const SalidaVehiculos = () => {
     const ticket = ticketData || datosTicketRef.current;
     
     if (!ticket) {
-      console.log('❌ No hay datos del ticket para recalcular');
       return;
     }
-    
-    console.log('🔄 Recalculando con ticket:', ticket.ticketId);
     
     // ARREGLO ZONA HORARIA: Usar UTC para ambas fechas
     const horaSalida = new Date(); // Hora local actual
@@ -133,14 +125,9 @@ const SalidaVehiculos = () => {
     // Convertir hora actual a UTC para comparar correctamente
     const horaSalidaUTC = new Date(horaSalida.getTime() + (horaSalida.getTimezoneOffset() * 60000));
     
-    console.log('🕐 DEBUG - Hora de entrada desde BD (UTC):', ticket.horaEntrada);
-    console.log('🕐 DEBUG - Hora actual local:', horaSalida.toISOString());
-    console.log('🕐 DEBUG - Hora actual UTC (corregida):', horaSalidaUTC.toISOString());
-    console.log('🕐 DEBUG - Hora entrada parseada (UTC):', horaEntrada.toISOString());
-    
     // Verificar si las fechas son válidas
     if (isNaN(horaEntrada.getTime())) {
-      console.error('❌ Fecha de entrada inválida:', ticket.horaEntrada);
+      console.error('Fecha de entrada inválida:', ticket.horaEntrada);
       setTiempoEstacionado('Error: Fecha inválida');
       return;
     }
@@ -148,14 +135,9 @@ const SalidaVehiculos = () => {
     // Calcular diferencia usando ambas fechas en UTC
     const diferenciaMs = horaSalidaUTC.getTime() - horaEntrada.getTime();
     const diferenciaHoras = diferenciaMs / (1000 * 60 * 60);
-    console.log('⏱️ DEBUG - Diferencia en ms (UTC correcto):', diferenciaMs);
-    console.log('⏱️ DEBUG - Diferencia en horas (UTC correcto):', diferenciaHoras.toFixed(2));
     
     let minutosReales = Math.floor(diferenciaMs / (1000 * 60));
     let segundos = Math.floor((diferenciaMs % (1000 * 60)) / 1000);
-
-    console.log('📊 DEBUG - Minutos reales calculados (corregido):', minutosReales);
-    console.log('📊 DEBUG - Segundos calculados (corregido):', segundos);
 
     // Asegurar que no sea menor a 0
     minutosReales = Math.max(0, minutosReales);
@@ -166,14 +148,13 @@ const SalidaVehiculos = () => {
     // Mostrar tiempo real
     let tiempoMostrar;
     if (minutosReales < 1) {
-      tiempoMostrar = `0h 0m ${segundos}s (Tiempo real) 🔄`;
+      tiempoMostrar = `0h 0m ${segundos}s (Tiempo real) `;
     } else {
       const horas = Math.floor(minutosReales / 60);
       const minRestantes = minutosReales % 60;
-      tiempoMostrar = `${horas}h ${minRestantes}m (${minutosReales} min total) 🔄`;
+      tiempoMostrar = `${horas}h ${minRestantes}m (${minutosReales} min total) `;
     }
     
-    console.log('💬 DEBUG - Tiempo a mostrar (CORREGIDO):', tiempoMostrar);
     setTiempoEstacionado(tiempoMostrar);
 
     // Calcular tarifa
@@ -181,20 +162,15 @@ const SalidaVehiculos = () => {
     setMontoAPagar(tarifaInfo.monto.toFixed(2));
     setInfoTarifa(tarifaInfo);
     setUltimaActualizacion(new Date().toLocaleTimeString());
-    
-    console.log('✅ Recálculo completado con zona horaria corregida');
   }, []);
 
   // Efecto principal para búsqueda de tickets
   useEffect(() => {
     const buscarTicket = async () => {
       if (codigoBarras.trim().length > 0) {
-        console.log('🎯 Iniciando búsqueda para código:', codigoBarras);
-        
         const ticket = await obtenerDatosTicket(codigoBarras.trim());
 
         if (ticket.success) {
-          console.log('✅ Procesando ticket exitoso');
           setDatosTicket(ticket);
           setTicketEncontrado(true);
           
@@ -210,14 +186,11 @@ const SalidaVehiculos = () => {
           
           // Limpiar auto-refresh anterior si existe
           if (intervaloRef.current) {
-            console.log('🛑 Limpiando auto-refresh anterior');
             clearInterval(intervaloRef.current);
           }
           
           // Iniciar auto-refresh
-          console.log('🚀 Iniciando auto-refresh cada 2 segundos');
           const interval = setInterval(() => {
-            console.log('🔄 Auto-refresh ejecutándose...', new Date().toLocaleTimeString());
             recalcularTiempo(); // Ya no necesitamos pasar parámetros, usa la ref
           }, 2000);
           
@@ -225,7 +198,6 @@ const SalidaVehiculos = () => {
           setAutoRefresh(interval);
           
         } else {
-          console.log('❌ Ticket no encontrado');
           setDatosTicket(null);
           setTicketEncontrado(false);
           datosTicketRef.current = null;
@@ -278,27 +250,27 @@ const SalidaVehiculos = () => {
   const handleProcesarPago = async () => {
     // Validaciones mejoradas
     if (!datosTicket) {
-      alert('❌ Por favor, escanee un código de barras válido primero.');
+      alert('Por favor, escanee un código de barras válido primero.');
       return;
     }
     
     if (!efectivoRecibido || parseFloat(efectivoRecibido) <= 0) {
-      alert('❌ Por favor, ingrese el efectivo recibido.');
+      alert('Por favor, ingrese el efectivo recibido.');
       return;
     }
     
     if (parseFloat(efectivoRecibido) < parseFloat(montoAPagar)) {
-      alert(`❌ Error: El efectivo recibido (Q${efectivoRecibido}) es insuficiente.\nMonto a pagar: Q${montoAPagar}`);
+      alert(`Error: El efectivo recibido (Q${efectivoRecibido}) es insuficiente.\nMonto a pagar: Q${montoAPagar}`);
       return;
     }
     
     // Confirmar antes de procesar
     const confirmar = window.confirm(
       `¿Confirmar pago?\n\n` +
-      `🚗 Placa: ${datosTicket.placa}\n` +
-      `💰 Monto a pagar: Q${montoAPagar}\n` +
-      `💵 Efectivo recibido: Q${efectivoRecibido}\n` +
-      `💱 Cambio: Q${cambioADar}`
+      ` Placa: ${datosTicket.placa}\n` +
+      ` Monto a pagar: Q${montoAPagar}\n` +
+      ` Efectivo recibido: Q${efectivoRecibido}\n` +
+      ` Cambio: Q${cambioADar}`
     );
     
     if (!confirmar) {
@@ -306,8 +278,6 @@ const SalidaVehiculos = () => {
     }
     
     try {
-      console.log('🔄 Procesando pago para ticket:', datosTicket.ticketId);
-      
       const response = await fetch('https://seminario-backend-1.onrender.com/api/vehiculos/salida', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -319,17 +289,15 @@ const SalidaVehiculos = () => {
         }),
       });
 
-      console.log('📡 Respuesta del servidor:', response.status);
       const data = await response.json();
-      console.log('📊 Datos de respuesta:', data);
 
       if (response.ok && data.exito) {
         alert(
-          `✅ ¡PAGO PROCESADO EXITOSAMENTE!\n\n` +
-          `🚗 Placa: ${datosTicket.placa}\n` +
-          `💰 Monto pagado: Q${montoAPagar}\n` +
-          `💱 Cambio entregado: Q${cambioADar}\n\n` +
-          `¡Que tenga buen día! 🚀`
+          `¡PAGO PROCESADO EXITOSAMENTE!\n\n` +
+          ` Placa: ${datosTicket.placa}\n` +
+          ` Monto pagado: Q${montoAPagar}\n` +
+          ` Cambio entregado: Q${cambioADar}\n\n` +
+          `¡Que tenga buen día! `
         );
         
         // Limpiar auto-refresh antes de resetear
@@ -339,13 +307,13 @@ const SalidaVehiculos = () => {
         }
         
         resetFormulario();
-        console.log('✅ Pago completado y formulario reseteado');
       } else {
-        alert(`❌ Error al procesar pago:\n${data.mensaje || 'Error desconocido'}`);
-        console.error('❌ Error del servidor:', data);
+        alert(`Error al procesar pago:\n${data.mensaje || 'Error desconocido'}`);
+        console.error('Error del servidor:', data);
       }
     } catch (error) {
-      console.error('💥 Error al procesar pago:', error);
+      console.error('Error al procesar pago:', error);
+      alert(`Error de conexión:\n${error.message}\n\nVerifique que el servidor esté funcionando.`);
       alert(`❌ Error de conexión:\n${error.message}\n\nVerifique que el servidor esté funcionando.`);
     }
   };
